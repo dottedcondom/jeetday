@@ -467,7 +467,9 @@
   /* ===================== THE 3D CAKE ===================== */
   .scene-cake{
     position:relative;
-    min-height:100svh; min-height:100vh;
+    /* exactly one screen tall: 100vh as the fallback, 100dvh (the screen you can actually see,
+       URL bar and all) wherever it is supported */
+    height:100vh; height:100dvh;
     overflow:hidden;
     background:
       radial-gradient(90% 70% at 50% 32%, rgba(255,150,90,.10), transparent 62%),
@@ -819,7 +821,7 @@
    --cw : width, % of the finale width
    --cr : rotation in degrees (+ = clockwise)
    --co : opacity 0-1                                                                    */
-.finale{ --cx:50.2%; --ca:0; --cy:2485px; --cw:18%; --cr:0deg; --co:1; }
+.finale{ --cx:50.2%; --ca:1; --cy:40px; --cw:18%; --cr:0deg; --co:1; }
 .chat-pic{
   position:absolute; z-index:0; left:var(--cx);
   top:calc(var(--ca) * 100% + (1 - 2 * var(--ca)) * var(--cy)); width:var(--cw);
@@ -961,9 +963,9 @@
       <span class="ml">aaj to aapka birthday hai i hope aapka aajka din bohot accha jaaye i mean i hope aapke saare din hi acche jaaye but yk aaj ka din jyada accha jaaye</span>
       <span class="ml">aur aaj acche se enjoy karna eat dance bahar ghoomo jo karna hai vo karo just have a good time aaj to sab kuch khaa jao be a proud khaoodiiii</span>
       <span class="ml">acche acche decisions lo and if they dont turn out acche unse seekho and dont be sad(gandi baat)</span>
-      <span class="ml">i hope you get everthing you want in your life aapko jo bhiiiii chahayiye vo sab mile aap bas khush raho happy raho hamesha hasti rahooo</span>
-      <span class="ml">aur kya bolu ummmmm YOU ARE THE BEST</span>
-      <span class="ml">stay the same amazing person you always were or get moreeeeeeeeeeee amazing i mean you are already bohot amazing but yk</span>
+      <span class="ml">i hope you get everthing you want in your life aapko jo bhiiiii chahayiye vo sab mile jo aapko achieve karna ho vo sab ho jaye aap bas khush raho happy raho hamesha hasti rahooo</span>
+      <span class="ml">aur kya bolu ummmmm YOU ARE THE BEST i have never seen anyone as awesome as you because you can make kisi ka bhi din without even realizing it</span>
+      <span class="ml">stay the same amazing person you always were or get moreeeeeeeeeeee amazing i mean you are already bohot amazing but yk if thats possible in jeetiverse and ye sab sunke jyaga ghamand mein matt aa jana (aayi badi)</span>
       <span class="ml">aap na thodi pagal bhi ho yas toh thodi si pagal bhi raho kyuki yk amazing hi rahogi to aapko pagal kaise bolunga mai</span>
       <span class="ml">and stay the same sweeeeeet person you are usse jyada to kya hi ho paaogi i dont think if thats possible</span>
       <span class="ml">againnn happy birthdayyy to the most amazing, sweetest, kindest and caring person i have ever mettttt thank you for making me smile and laugh every single day and THANK YOU for making me feel better everyday</span>
@@ -971,8 +973,9 @@
       <span class="ml">(here after evething happend... soo uhh yas things happens its uhh life yk and i hope everyhting gets okay ASAP i hope YOU are good and well)</span>
       <span class="ml">i miss you sooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo muchhhhhhhhhhhhhhhhhhhhhhhhhhhhhh</span>
       <span class="ml wide" id="wideLine">sweeeeeeeeeeeeeeeeeeeeeeeeettaaaaaaaaaaaaaaaaaaaaaannnnnnnshiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii</span>
-      <span class="ml">ahum here after your "last message", i think aapne pehle sab kuch mummy se discuss kiya hoga then you came to this conclusion. "last message" i didnt like this at all and whenever we are talking next time ill be gussa for that. im very patient but ITS YOU FOR WHOM ILL HAVE TO WAIT so you can call me impatient or BOHOT JYADA impatient also it was your decision to not talk, not mine, i hope that decision changes for a while or after a while and ill be waiting and manifesting for that.</span>
+      <span class="ml">ahum here after your "last message", i think aapne pehle sab kuch mummy se discuss kiya hoga then you came to this conclusion. "last message" i didnt like this at all and whenever we are talking next time ill be gussa for that. im very patient but ITS YOU FOR WHOM ILL HAVE TO WAIT so you can call me impatient or BOHOT JYADA impatient also it was your decision to not talk, not mine, so we can talk whenever you want to.</span>
       <span class="ml">also HAPPY DIWALIIIIIII acche se enjoy karnaaaaa dhyaan se rehna dont burn or get yourselft hurt from crackers, i hope aapke ghar mein hamesha khushiya rahe, sab acche se rahe and jo bhi diwali ke liye bolte hai vo sab kuch</span>
+      <span class="ml"> AAP BOHOT AJEEB HO OMG</span>
       <span class="ml">i hope and i wish you have a happy and great life ahead</span>
       <span class="ml">have fun jeetanshi</span>
     </p>
@@ -5477,7 +5480,7 @@ if (window.THREE){
     /* TEMP DEBUG: ?skip=1 bypasses the name lock + stick-figure scene so
        the cake scene can be verified quickly. REMOVE BEFORE FINAL. */
     var SKIP_DEBUG = /[?&]skip=1\b/.test(location.search);
-    if (SKIP_DEBUG){ state = 'free'; root.classList.remove('lock-scroll'); }
+    if (SKIP_DEBUG){ state = 'free'; root.classList.remove('lock-scroll'); root.classList.add('page-snap'); }
 
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     function lock(){ root.classList.add('lock-scroll'); }
@@ -5495,6 +5498,7 @@ if (window.THREE){
     function toFree(){
       state = 'free';
       unlock();
+      root.classList.add('page-snap');      /* from here on: hero / cake scene / finale scroll as full pages (see "page snap" script) */
       if (hint && (window.scrollY || 0) < window.innerHeight * 0.5 && G){
         gsap.to(hint, { opacity:1, duration:.6, ease:'power2.out' });
       }
@@ -11056,6 +11060,65 @@ if (window.THREE){
   new IntersectionObserver(function(en){
     fin.classList.toggle('gfx-off', !en[en.length - 1].isIntersecting);
   }, { rootMargin:'150px 0px' }).observe(fin);
+})();
+</script>
+<script id="page-snap-js">
+/* ===== PAGE SNAP =====================================================================
+   After the intro (the hero script adds .page-snap to <html>), scrolling moves one full
+   screen at a time between   hero  ->  cake scene  ->  top of the finale,
+   so the cake scene always rests as its OWN full page, never half-way with the hero or
+   the finale sharing the screen. Inside the finale (tall, free-scroll) nothing snaps.
+   Not active during the intro: the story drives window.scrollTo itself.                 */
+(function(){
+  var root = document.documentElement;
+  var IDS = ['hero', 'cakeScene', 'finale'];
+  var NUDGE = 24;                         /* px of movement that already counts as "go to the next page" */
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var dir = 0, prevY = window.pageYOffset || 0, touching = false, timer = null;
+
+  function tops(){
+    var y0 = window.pageYOffset || 0, out = [];
+    for (var i = 0; i < IDS.length; i++){
+      var e = document.getElementById(IDS[i]);
+      if (!e) return null;
+      out.push(Math.round(e.getBoundingClientRect().top + y0));
+    }
+    return out;
+  }
+
+  function settle(){
+    timer = null;
+    if (!root.classList.contains('page-snap') || touching) return;
+    var T = tops(); if (!T) return;
+    var y = window.pageYOffset || 0;
+    if (y < 0 || y >= T[2] - 2) return;                     /* rubber-band overscroll, or inside the finale */
+    var a = T[0], b = T[1];
+    for (var i = 0; i < 2; i++) if (y >= T[i] - 2){ a = T[i]; b = T[i + 1]; }
+    if (Math.abs(y - a) < 2) return;                        /* already resting on a page */
+    var to;
+    if (dir > 0)      to = (y - a > NUDGE) ? b : a;        /* heading down: commit to the next page */
+    else if (dir < 0) to = (b - y > NUDGE) ? a : b;        /* heading up: commit to the previous page */
+    else              to = (y - a < b - y) ? a : b;        /* no direction known: nearest page */
+    window.scrollTo({ top: to, behavior: reduce ? 'auto' : 'smooth' });
+  }
+
+  function later(ms){ clearTimeout(timer); timer = setTimeout(settle, ms); }
+
+  window.addEventListener('scroll', function(){
+    var y = window.pageYOffset || 0;
+    if (y > prevY) dir = 1; else if (y < prevY) dir = -1;
+    prevY = y;
+    later(150);                                             /* settle once the scrolling (incl. momentum) goes quiet */
+  }, { passive:true });
+
+  /* never pull the page out from under a finger */
+  window.addEventListener('touchstart', function(){ touching = true; clearTimeout(timer); }, { passive:true });
+  function lifted(){ touching = false; later(200); }
+  window.addEventListener('touchend', lifted, { passive:true });
+  window.addEventListener('touchcancel', lifted, { passive:true });
+
+  /* window / phone-toolbar resize: sections change height, so just re-rest on the nearest page */
+  window.addEventListener('resize', function(){ dir = 0; later(250); });
 })();
 </script>
 <!-- ===== TEMP-PREVIEW START (delete this whole block when done) ===== -->
