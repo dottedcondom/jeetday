@@ -11121,26 +11121,7 @@ if (window.THREE){
   window.addEventListener('resize', function(){ dir = 0; later(250); });
 })();
 </script>
-<!-- ===== TEMP-PREVIEW START (delete this whole block when done) ===== -->
-<button id="tmpJump" type="button" style="position:fixed;right:12px;top:calc(12px + env(safe-area-inset-top,0px));z-index:99999;padding:8px 12px;font:600 12px/1 Quicksand,sans-serif;color:#150c2e;background:#ffd93d;border:2px dashed #150c2e;border-radius:10px;cursor:pointer;opacity:.92">⏩ TEMP: jump to finale</button>
-<script>
-(function(){
-  var skip = /[?&]skip=1\b/.test(location.search);
-  function scrollToFinale(){
-    document.documentElement.classList.remove('lock-scroll');
-    var f = document.getElementById('finale');
-    if (f) window.scrollTo(0, f.getBoundingClientRect().top + window.pageYOffset);
-  }
-  document.getElementById('tmpJump').addEventListener('click', function(){
-    if (skip){ scrollToFinale(); }
-    else { location.href = location.pathname + '?skip=1#finale'; }   /* reload with the story unlocked */
-  });
-  if (skip && location.hash === '#finale'){
-    window.addEventListener('load', function(){ setTimeout(scrollToFinale, 400); setTimeout(scrollToFinale, 1200); });
-  }
-})();
-</script>
-<!-- ===== TEMP-PREVIEW END ===== -->
+
 
 
 
