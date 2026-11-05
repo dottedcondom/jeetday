@@ -10553,8 +10553,10 @@ if (window.THREE){
     /* ---- the fun cursor: a glowing golden star with sparkles (this page only) ---- */
     (function makeCursor(){
       try{
-        var S = 48, c = document.createElement('canvas'); c.width = c.height = S;
+        function render(k){                                              /* k = pixel density: 1 for normal, 2 for sharp (retina) screens */
+        var S = 48, c = document.createElement('canvas'); c.width = c.height = S * k;
         var g = c.getContext('2d');
+        g.scale(k, k);
         g.translate(24, 24); g.scale(0.7, 0.7); g.translate(-24, -24);   /* shrink cursor, keep hotspot centered */
         var glow = g.createRadialGradient(24, 24, 2, 24, 24, 23);
         glow.addColorStop(0, 'rgba(255,217,61,.6)'); glow.addColorStop(1, 'rgba(255,92,122,0)');
@@ -10579,7 +10581,15 @@ if (window.THREE){
           g.closePath(); g.fillStyle = col; g.fill();
         }
         tiny(39, 9, 5, '#ff8fb1'); tiny(8, 38, 4, '#8fd1ff'); tiny(40, 39, 3, '#ffffff');
-        sec.style.setProperty('--finale-cursor', 'url("' + c.toDataURL('image/png') + '") 24 24, auto');
+        return c.toDataURL('image/png');
+        }
+        var u1 = render(1), u2 = render(2);
+        var val = 'url("' + u1 + '") 24 24, auto';
+        try{
+          var is = 'image-set(url("' + u1 + '") 1x, url("' + u2 + '") 2x) 24 24, auto';
+          if (window.CSS && CSS.supports && CSS.supports('cursor', is)) val = is;      /* only where the browser can pick the sharp image */
+        } catch (e2){}
+        sec.style.setProperty('--finale-cursor', val);
       } catch (err){}
     })();
 
@@ -10742,10 +10752,9 @@ if (window.THREE){
         var r = sec.getBoundingClientRect();
         if (tA && (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom)) tA = 0;   /* scrolled away under a still mouse */
         var dt = Math.min(.05, (now - gLast) / 1000 || .016); gLast = now;
-        var kp = REDUCE ? 1 : 1 - Math.exp(-dt * 16),
-            ka = REDUCE ? 1 : 1 - Math.exp(-dt * 6),
+        var ka = REDUCE ? 1 : 1 - Math.exp(-dt * 6),
             ks = REDUCE ? 1 : 1 - Math.exp(-dt * 10);
-        px += (cx - px) * kp; py += (cy - py) * kp;
+        px = cx; py = cy;                                       /* glow sits exactly under the pointer - no easing, so fast moves don't lag */
         L.a += (tA - L.a) * ka; sc += (tS - sc) * ks;
         var moving = Math.abs(cx - px) > .15 || Math.abs(cy - py) > .15,
             fading = Math.abs(tA - L.a) > .004,
@@ -10853,8 +10862,8 @@ if (window.THREE){
       }, 900);
     }
 
-    var mx = 0, my = 0, queued = false;
-    var geo = null, geoAt = 0;
+    var mx = 0, my = 0, queued = false, inside = false, lastX = null, lastY = null;
+    var geo = null, geoAt = 0, live = false;      /* live = layout is gliding (the extra line opening/closing): re-measure every frame */
     function buildGeo(){
       var sx = window.pageXOffset || 0, sy = window.pageYOffset || 0, n = chars.length;
       if (!geo || geo.length !== n * 3) geo = new Float32Array(n * 3);
@@ -10864,22 +10873,42 @@ if (window.THREE){
       }
       geoAt = performance.now();
     }
-    window.addEventListener('resize', function(){ geo = null; });
-    function pass(){
-      queued = false;
-      if (!geo || performance.now() - geoAt > 1200) buildGeo();
-      var cx = mx + (window.pageXOffset || 0), cy = my + (window.pageYOffset || 0);
+    function invalidate(){ geo = null; }
+    window.addEventListener('resize', invalidate);
+    if (window.ResizeObserver) new ResizeObserver(invalidate).observe(msg);      /* font auto-size / wrapping changes */
+    function hitTest(cx, cy){
       for (var i = 0, n = chars.length; i < n; i++){
+        var f = chars[i]._favLine;                                            /* letters of the closed extra line stay untouched */
+        if (f && !f.classList.contains('on')) continue;
         var dy = cy - geo[i * 3 + 1]; if (dy > 120 || dy < -120) continue;
         var dx = cx - geo[i * 3];     if (dx > 120 || dx < -120) continue;
         if (Math.hypot(dx, dy) < Math.max(26, geo[i * 3 + 2] * 0.9)) touch(chars[i]);
       }
     }
-    msg._chars = chars; msg._resetGeo = function(){ geo = null; };      /* lets later lines join the colour effect */
-    msg.addEventListener('mousemove', function(e){
-      mx = e.clientX; my = e.clientY;
-      if (!queued){ queued = true; requestAnimationFrame(pass); }
-    });
+    function pass(){
+      queued = false;
+      if (!geo || live || performance.now() - geoAt > 1200) buildGeo();
+      var cx = mx + (window.pageXOffset || 0), cy = my + (window.pageYOffset || 0);
+      if (lastX !== null){                                                    /* fast swipes: also test points along the way, so no letter gets skipped */
+        var gx = cx - lastX, gy = cy - lastY, steps = Math.min(40, Math.ceil(Math.hypot(gx, gy) / 14));
+        for (var k = 1; k < steps; k++) hitTest(lastX + gx * k / steps, lastY + gy * k / steps);
+      }
+      hitTest(cx, cy);
+      lastX = cx; lastY = cy;
+      if (live) queue();                                                      /* keep following while the layout glides */
+    }
+    function queue(){ if (!queued){ queued = true; requestAnimationFrame(pass); } }
+    msg._chars = chars;                                                       /* lets later lines join the colour effect */
+    msg._resetGeo = invalidate;
+    msg._setLive = function(on){ live = !!on; geo = null; if (on && inside) queue(); };
+    function track(e){ mx = e.clientX; my = e.clientY; }
+    msg.addEventListener('pointerenter', function(e){ track(e); inside = true; lastX = null; queue(); }, { passive: true });
+    msg.addEventListener('pointermove',  function(e){ track(e); inside = true; queue(); }, { passive: true });
+    msg.addEventListener('pointerdown',  function(e){ track(e); inside = true; lastX = null; queue(); }, { passive: true });   /* taps colour letters too */
+    msg.addEventListener('pointerleave', function(){ inside = false; lastX = null; }, { passive: true });
+    msg.addEventListener('pointercancel', function(){ inside = false; lastX = null; }, { passive: true });
+    window.addEventListener('scroll', function(){ if (inside){ lastX = null; queue(); } }, { passive: true });   /* text sliding under a still cursor reacts too */
+    window.addEventListener('blur', function(){ inside = false; lastX = null; });
   })();
 </script>
 <script>
@@ -11053,8 +11082,14 @@ if (window.THREE){
     if (wi < words.length - 1) pos.appendChild(document.createTextNode(' '));
   });
   last.parentNode.appendChild(line);
+  made.forEach(function(c){ c._favLine = line; });                       /* lets the colour effect ignore these while the line is closed */
   if (msg._chars) made.forEach(function(c){ msg._chars.push(c); });      /* its letters react to the cursor like the rest */
-  var shown = false, t = 0;
+  var shown = false, t = 0, settle = 0;
+  function glide(){                                                      /* while the line opens/closes, keep letter positions fresh */
+    if (!msg._setLive) return;
+    msg._setLive(true); clearTimeout(settle);
+    settle = setTimeout(function(){ msg._setLive(false); }, 650);
+  }
   function place(){                                                      /* centred under the word (right-aligned to it on phones) */
     var lr = line.getBoundingClientRect(), wr = w.getBoundingClientRect(), pw = pos.offsetWidth, x;
     if (window.matchMedia && matchMedia('(max-width:640px)').matches) x = (wr.right - lr.left) - pw;
@@ -11068,11 +11103,20 @@ if (window.THREE){
     line.classList.toggle('on', on);
     line.setAttribute('aria-hidden', on ? 'false' : 'true');
     if (msg._resetGeo) msg._resetGeo();
+    glide();
   }
-  w.addEventListener('mouseenter', function(){ clearTimeout(t); set(true); });
-  w.addEventListener('mouseleave', function(){ clearTimeout(t); t = setTimeout(function(){ set(false); }, LEAVE); });
+  /* mouse / pen: hover.  touch: tap the word to open it, tap anywhere else to close it */
+  w.addEventListener('pointerenter', function(e){ if (e.pointerType === 'touch') return; clearTimeout(t); set(true); });
+  w.addEventListener('pointerleave', function(e){ if (e.pointerType === 'touch') return; clearTimeout(t); t = setTimeout(function(){ set(false); }, LEAVE); });
+  w.addEventListener('pointerdown',  function(e){ if (e.pointerType !== 'touch') return; clearTimeout(t); set(!shown); });
+  document.addEventListener('pointerdown', function(e){
+    if (e.pointerType === 'touch' && shown && !w.contains(e.target)) set(false);
+  }, { passive: true });
   line.addEventListener('transitionend', function(e){                    /* the content below has settled: refresh letter positions */
-    if (e.target === line && e.propertyName === 'height' && msg._resetGeo) msg._resetGeo();
+    if (e.target === line && e.propertyName === 'height'){
+      if (msg._resetGeo) msg._resetGeo();
+      if (msg._setLive){ clearTimeout(settle); msg._setLive(false); }
+    }
   });
   window.addEventListener('resize', function(){ if (shown) place(); });
 })();
