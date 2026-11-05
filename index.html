@@ -805,6 +805,38 @@
   }
 })();
 </script>
+<!-- ===== TAB TITLE MESSAGES: changes when she leaves / comes back ===== -->
+<script>
+(function(){
+  var AWAY_1 = 'idhar aao \uD83D\uDE20';          /* 1st time she leaves */
+  var BACK_1 = [ ['hellow', 0], ['kaisi ho?', 2000] ];   /* [title, delay after previous ms] */
+  var AWAY_2 = 'VAPAS GAYI?';                      /* every time after that she leaves */
+  var BACK_2 = [ ['idhar hi raho', 0], ['i feel good', 2000], ['when', 3000], ['you are with me', 2000] ];
+
+  var leaves = 0, timers = [];
+
+  function clearTimers(){ while (timers.length) clearTimeout(timers.pop()); }
+
+  function play(seq){
+    var wait = 0;
+    seq.forEach(function(step){
+      wait += step[1];
+      if (wait === 0) document.title = step[0];
+      else timers.push(setTimeout(function(){ document.title = step[0]; }, wait));
+    });
+  }
+
+  document.addEventListener('visibilitychange', function(){
+    clearTimers();                                  /* stop any half-played sequence */
+    if (document.hidden){
+      leaves++;
+      document.title = (leaves === 1) ? AWAY_1 : AWAY_2;
+    } else {
+      play(leaves <= 1 ? BACK_1 : BACK_2);
+    }
+  });
+})();
+</script>
 <style id="kirby-bg-css">
 /* ===== KIRBY behind the finale message =====
    Tune with these 4 numbers (all set on .finale):
