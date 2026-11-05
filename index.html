@@ -9470,6 +9470,11 @@ if (window.THREE){
         var triedBuiltIn = false;
         function adopt(gltf, fromFolder){
           try {
+            /* the cat.glb in the folder must be the version with the bright eyes (marked asset.extras.catEyes); an older copy
+               (dark eyes) is skipped and the built-in cat - which has the bright eyes - is used instead */
+            if (fromFolder && rec.kind === 'cat' && emb.cat && !(gltf.asset && gltf.asset.extras && gltf.asset.extras.catEyes)){
+              throw new Error('cat.glb in the folder is an older copy with the dark eyes');
+            }
             fn(rec, gltf);
             say('[guests] ' + rec.kind + ': ' + (fromFolder ? 'loaded from the folder' : 'using the built-in copy'));
           } catch (err){
